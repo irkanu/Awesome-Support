@@ -397,11 +397,19 @@ function wpas_get_users( $args = array() ) {
 
 	/* If there is a cached result we return it and don't run the expensive query. */
 	if ( false !== $result ) {
-		return apply_filters( 'wpas_get_users', get_users( array( 'include' => (array) $result ) ) );
+
+		global $wpdb;
+
+		$csv_result = implode( ", ", $result);
+
+		$sql_users = $wpdb->get_results( "SELECT ID, display_name FROM $wpdb->users WHERE ID IN ( $csv_result )" );
+
+		return apply_filters( 'wpas_get_users', $sql_users );
 	}
 
 	/* Get all WordPress users */
 	$all_users = get_users();
+
 
 	/**
 	 * Store the selected user IDs for caching.
@@ -534,7 +542,7 @@ function wpas_users_dropdown( $args = array() ) {
 	/**
 	 * We use a marker to keep track of when a user was selected.
 	 * This allows for adding a fallback if nobody was selected.
-	 * 
+	 *
 	 * @var boolean
 	 */
 	$marker = false;
@@ -546,7 +554,7 @@ function wpas_users_dropdown( $args = array() ) {
 		$user = get_user_by( 'id', intval( $args['selected'] ) );
 		if ( false !== $user && ! is_wp_error( $user ) ) {
 			$marker = true;
-			$options .= "<option value='{$user->ID}' selected='selected'>{$user->data->display_name}</option>";
+			$options .= "<option value='{$user->ID}' selected='selected'>{$user->display_name}</option>";
 		}
 	}
 
@@ -558,7 +566,7 @@ function wpas_users_dropdown( $args = array() ) {
 		}
 
 		$user_id       = $user->ID;
-		$user_name     = $user->data->display_name;
+		$user_name     = $user->display_name;
 		$selected_attr = '';
 
 		if ( false === $marker ) {
@@ -589,7 +597,7 @@ function wpas_users_dropdown( $args = array() ) {
 	if ( true === $args['agent_fallback'] && false === $marker ) {
 		$fallback    = $current_user;
 		$fb_selected = false === $marker ? 'selected="selected"' : '';
-		$options .= "<option value='{$fallback->ID}' $fb_selected>{$fallback->data->display_name}</option>";
+		$options .= "<option value='{$fallback->ID}' $fb_selected>{$fallback->display_name}</option>";
 	}
 
 	$contents = wpas_dropdown( wp_parse_args( $args, $defaults ), $options );
